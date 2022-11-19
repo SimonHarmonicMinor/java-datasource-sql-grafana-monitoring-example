@@ -1,8 +1,95 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.postgresql:postgresql:42.3.7'
+        classpath 'org.testcontainers:postgresql:1.17.6'
+        classpath 'org.flywaydb:flyway-core:8.5.13'
+        // classpath 'jakarta.xml.bind:jakarta.xml.bind-api:2.3.2'
+    }
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '2.7.5'
     id 'io.spring.dependency-management' version '1.0.15.RELEASE'
-    id "org.unbroken-dome.test-sets" version "4.0.0"
+    id 'nu.studer.jooq' version '8.0'
+    id 'org.flywaydb.flyway' version '8.5.13'
+}
+
+import org.testcontainers.containers.PostgreSQLContainer;
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    flywayMigration
+}
+
+task postgresContainer {
+    var instance = new PostgreSQLContainer("postgres:13")
+    instance.start()
+    postgresContainer.ext.jdbcUrl = instance.getJdbcUrl()
+    postgresContainer.ext.username = instance.getUsername()
+    postgresContainer.ext.password = instance.getPassword()
+    postgresContainer.ext.databaseName = instance.getDatabaseName()
+    postgresContainer.ext.instance = instance
+}
+
+flyway {
+    locations = ['filesystem:./src/main/resources/db/migration']
+    configurations = ['flywayMigration']
+    url = postgresContainer.jdbcUrl
+    user = postgresContainer.username
+    password = postgresContainer.password
+}
+
+jooq {
+    configurations {
+        main {
+            generationTool {
+                logging = org.jooq.meta.jaxb.Logging.INFO
+                jdbc {
+                    url = postgresContainer.jdbcUrl
+                    user = postgresContainer.username
+                    password = postgresContainer.password
+                }
+                generator {
+                    name = 'org.jooq.codegen.DefaultGenerator'
+                    database {
+                        includes = '.*'
+                        excludes = '^Flyway.*'
+                        inputSchema = "public"
+                        outputSchemaToDefault = true
+                    }
+                    generate {
+                        pojos = true
+                        daos = true
+                        immutablePojos = true
+                    }
+                    target {
+                        packageName = 'com.example.demo.jooq.generated'
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.named('generateJooq').configure {
+    dependsOn tasks.named('postgresContainer')
+    dependsOn tasks.named('flywayMigrate')
+
+    inputs.files(fileTree('src/main/resources/db/migration'))
+            .withPropertyName('migrations')
+            .withPathSensitivity(PathSensitivity.RELATIVE)
+
+    allInputsDeclared = true
+    doLast {
+        postgresContainer.instance.stop()
+    }
 }
 
 group = 'com.example'
@@ -13,10 +100,7 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
-}
-
-repositories {
-    mavenCentral()
+    flywayMigration
 }
 
 ext {
@@ -36,10 +120,6 @@ tasks.withType(Test) {
     }
 }
 
-testSets {
-    generateJooq
-}
-
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-jooq'
@@ -51,9 +131,9 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
 
-    generateJooqImplementation "org.jooq:jooq"
-    generateJooqImplementation "org.jooq:jooq-meta"
-    generateJooqImplementation "org.jooq:jooq-codegen"
+    jooqGenerator 'org.postgresql:postgresql'
+    jooqGenerator "jakarta.xml.bind:jakarta.xml.bind-api:3.0.1"
+
     testAnnotationProcessor 'org.projectlombok:lombok'
     testCompileOnly 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
