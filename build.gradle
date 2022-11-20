@@ -6,7 +6,6 @@ buildscript {
         classpath 'org.postgresql:postgresql:42.3.7'
         classpath 'org.testcontainers:postgresql:1.17.6'
         classpath 'org.flywaydb:flyway-core:8.5.13'
-        // classpath 'jakarta.xml.bind:jakarta.xml.bind-api:2.3.2'
     }
 }
 
