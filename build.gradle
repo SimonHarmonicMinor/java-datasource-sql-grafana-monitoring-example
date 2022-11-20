@@ -131,6 +131,7 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
+    implementation "net.ttddyy:datasource-proxy:1.8"
 
     jooqGenerator 'org.postgresql:postgresql'
     jooqGenerator "jakarta.xml.bind:jakarta.xml.bind-api:3.0.1"
