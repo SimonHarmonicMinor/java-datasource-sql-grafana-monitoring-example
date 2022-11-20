@@ -1,0 +1,19 @@
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: 'prometheus,health,info,metric,scheduledtasks,mappings,loggers,conditions,caches,beans'
+      base-path: '/api/actuator'
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  endpoint:
+    health:
+      probes:
+        enabled: true
