@@ -1,0 +1,64 @@
+version: '3.5'
+
+networks:
+  monitoring:
+    driver: bridge
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:v2.37.0
+    restart: unless-stopped
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    expose:
+      - 9090
+    networks:
+      - monitoring
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:9.0.5
+    depends_on:
+      - prometheus
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+    expose:
+      - 3000
+    networks:
+      - monitoring
+
+  #java-service:
+  #  depends_on:
+  #    - postgres
+  #  container_name: java-service
+  #  stop_signal: SIGKILL
+  #  stdin_open: true
+  #  tty: true
+  #  working_dir: $PWD
+  #  volumes:
+  #    - $PWD:$PWD
+  #    - /var/run/docker.sock:/var/run/docker.sock
+  #  build:
+  #    context: .
+  #    dockerfile: Dockerfile
+  #  ports:
+  #    - '8080:8080'
