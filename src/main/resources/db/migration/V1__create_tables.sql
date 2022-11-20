@@ -9,6 +9,7 @@ CREATE TABLE article
 
 CREATE TABLE comment
 (
-    id      UUID PRIMARY KEY,
-    content TEXT
+    id         UUID PRIMARY KEY,
+    content    TEXT,
+    article_id UUID NOT NULL REFERENCES article (id)
 );
